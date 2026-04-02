@@ -1,0 +1,87 @@
+public class ConditionalAssigmentStatement implements InterfaceStatement
+{
+    private final String key;
+    private final InterfaceExpression expression1;
+    private final InterfaceExpression expression2;
+    private final InterfaceExpression expression3;
+
+    public ConditionalAssigmentStatement(String k, InterfaceExpression expr1, InterfaceExpression expr2, InterfaceExpression expr3)
+    {
+        this.key = k;
+        this.expression1 = expr1;
+        this.expression2 = expr2;
+        this.expression3 = expr3;
+    }
+
+    @Override
+    public ProgramState execute(ProgramState state) throws MyException
+    {
+        InterfaceSymbolTable interfaceSymbolTable = state.getSymbolTable();
+        SymbolTable symbolTable = (SymbolTable) interfaceSymbolTable;
+
+        if (symbolTable.contains(key))
+        {
+            InterfaceValue value1 = expression1.evaluate(symbolTable, state.getHeap());
+            InterfaceValue value2 = expression2.evaluate(symbolTable, state.getHeap());
+            InterfaceValue value3 = expression3.evaluate(symbolTable, state.getHeap());
+            InterfaceType typeId = (symbolTable.lookUp(key)).getType();
+            if (value2.getType().equals(typeId) && value3.getType().equals(typeId))
+            {
+                if (value1.getType().equals(new BoolType()))
+                {
+                    boolean condition = ((BoolValue) value1).getValue();
+                    if (condition)
+                        symbolTable.update(key, value2);
+                    else
+                        symbolTable.update(key, value3);
+                }
+                else
+                {
+                    throw new MyException("The Expression of Conditional Assignment Statement has to be of bool type!");
+                }
+            }
+            else
+            {
+                throw new MyException("Declared Types of variable " + key + " and Types of the assigned Expressions do not match.");
+            }
+        }
+        else
+        {
+            throw new MyException("The used variable " + key + " was not declared before.");
+        }
+        state.setSymbolTable(symbolTable);
+        return null;
+    }
+
+    @Override
+    public InterfaceDictionary<String, InterfaceType> typeCheck(InterfaceDictionary<String, InterfaceType> typeEnv) throws MyException
+    {
+        InterfaceType typeVar = typeEnv.lookUp(key);
+        InterfaceType typeExpr2 = expression2.typeCheck(typeEnv);
+        InterfaceType typeExpr3 = expression3.typeCheck(typeEnv);
+        if (typeVar.equals(typeExpr2) && typeVar.equals(typeExpr3))
+        {
+            InterfaceType typeExpr1 = expression1.typeCheck(typeEnv);
+            if (typeExpr1.equals(new BoolType()))
+            {
+                return typeEnv;
+            }
+            else
+                throw new MyException("The Expression of Conditional Assignment Statement has to be of bool type!");
+        }
+        else
+            throw new MyException("Conditional Assignment Statement: right hand side and left hand side have different types.");
+    }
+
+    @Override
+    public InterfaceStatement deepCopy()
+    {
+        return new ConditionalAssigmentStatement(key, expression1.deepCopy(), expression2.deepCopy(), expression3.deepCopy());
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("%s = %s ? %s : %s", key, expression1, expression2, expression3);
+    }
+}
